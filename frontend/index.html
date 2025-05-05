@@ -2,22 +2,30 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>Secure Chat</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Secure Chat (TS)</title>
 </head>
 <body>
   <div class="chat-app">
+    <!-- Список чатов -->
     <aside class="sidebar">
-      <div class="sidebar-header">Чаты</div>
+      <header class="sidebar-header">
+        <h1>Чаты</h1>
+        <button id="newChatBtn">+</button>
+      </header>
       <div class="chat-list" id="chatList"></div>
     </aside>
+
+    <!-- Окно сообщений -->
     <main class="chat-window">
-      <div class="chat-header" id="chatHeader"></div>
+      <header class="chat-header" id="chatHeader">
+        <h2 id="currentChatTitle">Выберите чат</h2>
+      </header>
       <div class="messages" id="messages"></div>
       <div class="message-input">
         <input type="text" id="messageInput" placeholder="Напишите сообщение...">
         <button id="sendButton">Отправить</button>
       </div>
     </main>
-  </div>
 </body>
 </html>
