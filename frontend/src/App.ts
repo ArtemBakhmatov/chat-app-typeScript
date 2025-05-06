@@ -1,6 +1,7 @@
 import { mockChats, mockMessages, mockUsers } from './mocks/data';
 
 import './styles/main.scss';
+import { Message } from './types/chat';
 
 class ChatApp {
   private currentChatId: string | null = null;
@@ -8,6 +9,7 @@ class ChatApp {
   constructor() {
     console.log('ChatApp initialized!');
     this.renderChatList();
+    this.setupEventListeners();
   }
 
   private renderChatList(): void {
@@ -73,6 +75,41 @@ class ChatApp {
         </div>
       </div>
     `).join('');
+  }
+
+  private setupEventListeners(): void {
+    const sendButton = document.getElementById('sendButton') as HTMLButtonElement;
+    const messageInput = document.getElementById('messageInput') as HTMLInputElement;
+
+    sendButton.addEventListener('click', () => {
+      if (!this.currentChatId || !messageInput.value.trim()) return;
+
+      const newMessage: Message = {
+        id: Date.now().toString(),
+        text: messageInput.value,
+        userId: '1', // ID текущего пользователя (пока mock)
+        timestamp: new Date()
+      };
+
+      this.addMessageToChat(newMessage);
+      messageInput.value = '';
+    });
+  }
+
+  private addMessageToChat(message: Message): void {
+    const messagesContainer = document.getElementById('messages') as HTMLElement;
+
+    const messageElement = document.createElement('div');
+    messageElement.className = `message ${ message.userId === '1' ? 'outgoing' : 'incoming' }`;
+    messageElement.innerHTML = `
+      <div class="message-content">${ message.text }</div>
+      <div class="message-time">
+        ${ message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
+      </div>
+    `;
+
+    messagesContainer.appendChild(messageElement);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight; // авто-я прокрутка элемента до нижней части.
   }
 }
 
