@@ -10,6 +10,10 @@ class ChatApp {
     console.log('ChatApp initialized!');
     this.renderChatList();
     this.setupEventListeners();
+    // Вызываем при фокусе на input
+    document.getElementById('messageInput')?.addEventListener('focus', () => {
+      this.simulateTyping();
+    });
   }
 
   private renderChatList(): void {
@@ -55,6 +59,17 @@ class ChatApp {
     // TODO: Рендер сообщений (следующий этап)
     console.log('Выберите чат:', chatId);
     this.renderMessages(chatId);
+
+    // Снимаем выделение со всех чатов
+    document.querySelectorAll('.chat-item').forEach(item => {
+      item.setAttribute('data-active', 'false');
+    });
+
+    // Выделяем выбранный чат
+    const selectChat = document.querySelector(`.chat-item[data-chat-id="${chatId}"]`);
+    if (selectChat) {
+      selectChat.setAttribute('data-active', 'true');
+    }
   }
 
   private renderMessages(chatId: string): void {
@@ -109,8 +124,25 @@ class ChatApp {
     `;
 
     messagesContainer.appendChild(messageElement);
-    messagesContainer.scrollTop = messagesContainer.scrollHeight; // авто-я прокрутка элемента до нижней части.
+    //messagesContainer.scrollTop = messagesContainer.scrollHeight; // авто-я прокрутка элемента до нижней части.
+
+    messagesContainer.scrollTo({
+      top: messagesContainer.scrollHeight,
+      behavior: 'smooth'
+    });
   }
+
+  private simulateTyping(): void {
+    const indicator = document.getElementById('typingIndicator');
+    if (!indicator) return;
+
+    indicator.setAttribute('data-active', 'true');
+
+    setTimeout(() => {
+      indicator.setAttribute('data-active', 'false');
+    }, 2000);
+  }
+  
 }
 
 new ChatApp();
