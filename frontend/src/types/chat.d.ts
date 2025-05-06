@@ -1,10 +1,10 @@
-interface User {
+export interface User {
   id: string;
   name: string;
   avatar?: string;
 }
 
-interface Message {
+export interface Message {
   id: string;
   text: string;
   userId: string;
@@ -12,7 +12,7 @@ interface Message {
   isEncrypted?: boolean;
 }
 
-interface Chat {
+export interface Chat {
   id: string;
   title: string;
   users: User[];
