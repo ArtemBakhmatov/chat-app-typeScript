@@ -5,15 +5,12 @@ import { Message } from './types/chat';
 
 class ChatApp {
   private currentChatId: string | null = null;
+  private typingTimeout: number | null = null;
 
   constructor() {
     console.log('ChatApp initialized!');
     this.renderChatList();
     this.setupEventListeners();
-    // Вызываем при фокусе на input
-    document.getElementById('messageInput')?.addEventListener('focus', () => {
-      this.simulateTyping();
-    });
   }
 
   private renderChatList(): void {
@@ -54,11 +51,14 @@ class ChatApp {
 
     // Обновляем заголовок чата
     const chatHeader = document.getElementById('chatHeader') as HTMLElement;
-    chatHeader.innerHTML = `<h2>${ chat.title }</h2>`;
+    chatHeader.innerHTML = `
+      <h2>${ chat.title }</h2>
+      <div class="typing-indicator" id="typingIndicator">Печатает...</div>
+    `;
 
     // TODO: Рендер сообщений (следующий этап)
     console.log('Выберите чат:', chatId);
-    this.renderMessages(chatId);
+    //this.renderMessages(chatId);
 
     // Снимаем выделение со всех чатов
     document.querySelectorAll('.chat-item').forEach(item => {
@@ -70,6 +70,25 @@ class ChatApp {
     if (selectChat) {
       selectChat.setAttribute('data-active', 'true');
     }
+
+    // анимация загрузки чата
+    const loadingIndicator = document.getElementById('chatLoading');
+    const messagesContainer = document.getElementById('messages') as HTMLElement;
+    if (loadingIndicator) {
+      loadingIndicator.setAttribute('data-active', 'true');
+      messagesContainer.style.filter =  'blur(3px) brightness(90%)';
+    }
+
+    // Имитация загрузки
+    setTimeout(() => {
+      if (loadingIndicator) {
+        loadingIndicator.setAttribute('data-active', 'false');
+        messagesContainer.style.filter =  '';
+      }
+      this.renderMessages(chatId);
+    }, 800);
+
+    this.showTypingIndicator(false); // Сброс индикатора при смене чата
   }
 
   private renderMessages(chatId: string): void {
@@ -95,6 +114,19 @@ class ChatApp {
   private setupEventListeners(): void {
     const sendButton = document.getElementById('sendButton') as HTMLButtonElement;
     const messageInput = document.getElementById('messageInput') as HTMLInputElement;
+
+    messageInput.addEventListener('input', () => {
+      if (!this.currentChatId) return;
+      
+      this.showTypingIndicator(true);
+      
+      // Сбрасываем предыдущий таймер
+      if (this.typingTimeout) clearTimeout(this.typingTimeout);
+      
+      this.typingTimeout = window.setTimeout(() => {
+        this.showTypingIndicator(false);
+      }, 2000);
+    });
 
     sendButton.addEventListener('click', () => {
       if (!this.currentChatId || !messageInput.value.trim()) return;
@@ -132,17 +164,12 @@ class ChatApp {
     });
   }
 
-  private simulateTyping(): void {
+  private showTypingIndicator(show: boolean): void {
     const indicator = document.getElementById('typingIndicator');
-    if (!indicator) return;
-
-    indicator.setAttribute('data-active', 'true');
-
-    setTimeout(() => {
-      indicator.setAttribute('data-active', 'false');
-    }, 2000);
+    if (indicator) {
+      indicator.setAttribute('data-active', String(show));
+    }
   }
-  
 }
 
 new ChatApp();

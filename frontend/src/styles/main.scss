@@ -84,6 +84,7 @@ body {
     flex: 1;
     display: flex;
     flex-direction: column;
+    position: relative;
 
     .chat-header {
       padding: 15px;
@@ -92,10 +93,13 @@ body {
       .typing-indicator {
         font-size: 12px;
         color: #666;
+        height: 0;
+        overflow: hidden;
         opacity: 0;
-        transition: opacity 0.3s;
+        transition: height 0.3s, opacity 0.3s;
 
         &[data-active="true"] {
+          height: 16px;
           opacity: 1;
         }
       }
@@ -106,14 +110,20 @@ body {
       padding: 20px;
       overflow-y: auto;
       background: white;
+      scrollbar-width: thin;
+      scrollbar-color: #c1c1c1 transparent;
 
       &::-webkit-scrollbar {
         width: 6px;
       }
+      &::-webkit-scrollbar-track {
+        background: transparent;
+      }
       &::-webkit-scrollbar-thumb {
-        background: #ccc;
+        background-color: #c1c1c1;
         border-radius: 3px;
       }
+      
       .message {
         max-width: 60%;
         margin-bottom: 15px;
@@ -201,6 +211,9 @@ body {
         &:focus {
           border-color: $primary-color;
         }
+        &:hover {
+          border-color: #b3b3b3;
+        }
       }
 
       button {
@@ -223,6 +236,50 @@ body {
           transform: scale(0.95);
         }
       }
+    }
+  }
+
+  .chat-loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 0;
+    opacity: 0;
+    transition: opacity 0.3s;
+
+    &[data-active="true"] {
+      opacity: 1;
+    }
+
+    .loading-dot {
+      width: 8px;
+      height: 8px;
+      background: #0088cc;
+      border-radius: 50%;
+      animation: bounce 1.4s infinite ease-in-out;
+
+      &:nth-child(1) { 
+        animation-delay: 0s; 
+      }
+      &:nth-child(2) {
+        animation-delay: 0.2s;
+      }
+      &:nth-child(3) {
+        animation-delay: 0.4s;
+      }
+    }
+  }
+
+  @keyframes bounce {
+    0%, 80%, 100% {
+      transform: translateY(0);
+    }
+    40% {
+      transform: translateY(-10px);
     }
   }
 }

@@ -20,13 +20,19 @@
     <main class="chat-window">
       <header class="chat-header" id="chatHeader">
         <h2 id="currentChatTitle">Выберите чат</h2>
-        <div class="typing-indicator" id="typingIndicator">Печатает...</div>
+        <!-- <div class="typing-indicator" id="typingIndicator">Печатает...</div> -->
       </header>
       <div class="messages" id="messages"></div>
+      <div class="chat-loading" id="chatLoading">
+        <div class="loading-dot"></div>
+        <div class="loading-dot"></div>
+        <div class="loading-dot"></div>
+      </div>
       <div class="message-input">
         <input type="text" id="messageInput" placeholder="Напишите сообщение...">
         <button id="sendButton">Отправить</button>
       </div>
+      
     </main>
 </body>
 </html>
