@@ -1,3 +1,4 @@
+import { LoadingDots } from './components/LoadingDots';
 import { mockChats, mockMessages, mockUsers } from './mocks/data';
 
 import './styles/main.scss';
@@ -71,19 +72,23 @@ class ChatApp {
       selectChat.setAttribute('data-active', 'true');
     }
 
-    // анимация загрузки чата
-    const loadingIndicator = document.getElementById('chatLoading');
+    // анимация загрузки чата 
     const messagesContainer = document.getElementById('messages') as HTMLElement;
+    messagesContainer.after(LoadingDots.create());
+    const loadingIndicator = document.querySelector('.loading-dots');
+
     if (loadingIndicator) {
       loadingIndicator.setAttribute('data-active', 'true');
-      messagesContainer.style.filter =  'blur(3px) brightness(90%)';
+      messagesContainer.setAttribute('data-loading', 'true');
+      // messagesContainer.style.filter =  'blur(3px) brightness(90%)';
     }
-
+  
     // Имитация загрузки
     setTimeout(() => {
       if (loadingIndicator) {
         loadingIndicator.setAttribute('data-active', 'false');
-        messagesContainer.style.filter =  '';
+        messagesContainer.setAttribute('data-loading', 'false');
+        // messagesContainer.style.filter =  '';
       }
       this.renderMessages(chatId);
     }, 800);
