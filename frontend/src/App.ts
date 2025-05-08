@@ -1,3 +1,4 @@
+import { mockWebSocket } from './api/mockWebSocket';
 import { LoadingDots } from './components/LoadingDots';
 import { mockChats, mockMessages, mockUsers } from './mocks/data';
 
@@ -12,6 +13,7 @@ class ChatApp {
     console.log('ChatApp initialized!');
     this.renderChatList();
     this.setupEventListeners();
+    this.initWebSocket();
   }
 
   private renderChatList(): void {
@@ -53,7 +55,13 @@ class ChatApp {
     // Обновляем заголовок чата
     const chatHeader = document.getElementById('chatHeader') as HTMLElement;
     chatHeader.innerHTML = `
-      <h2>${ chat.title }</h2>
+      <div class="chat-status">
+        <h2 id="currentChatTitle">${ chat.title }</h2>
+          <div class="status-indicator">
+            <span class="status-dot"></span>
+            <span id="statusText">Offline</span>
+          </div>
+        </div>
       <div class="typing-indicator" id="typingIndicator">Печатает...</div>
     `;
 
@@ -94,6 +102,8 @@ class ChatApp {
     }, 800);
 
     this.showTypingIndicator(false); // Сброс индикатора при смене чата
+    // Авто фокус на поле ввода при выборе чата:
+    (document.getElementById('messageInput') as HTMLInputElement).focus();
   }
 
   private renderMessages(chatId: string): void {
@@ -136,15 +146,27 @@ class ChatApp {
     sendButton.addEventListener('click', () => {
       if (!this.currentChatId || !messageInput.value.trim()) return;
 
-      const newMessage: Message = {
-        id: Date.now().toString(),
-        text: messageInput.value,
-        userId: '1', // ID текущего пользователя (пока mock)
-        timestamp: new Date()
-      };
+      if (messageInput.value.trim()) {
+        this.sendMessage(messageInput.value.trim());
+        messageInput.value = '';
+      }
 
-      this.addMessageToChat(newMessage);
-      messageInput.value = '';
+      // const newMessage: Message = {
+      //   id: Date.now().toString(),
+      //   text: messageInput.value,
+      //   userId: '1', // ID текущего пользователя (пока mock)
+      //   timestamp: new Date()
+      // };
+
+      // this.addMessageToChat(newMessage);
+      // messageInput.value = '';
+    });
+
+    messageInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter' && messageInput.value.trim()) {
+        this.sendMessage(messageInput.value.trim());
+        messageInput.value = '';
+      }
     });
   }
 
@@ -174,6 +196,50 @@ class ChatApp {
     if (indicator) {
       indicator.setAttribute('data-active', String(show));
     }
+  }
+
+  private initWebSocket(): void {
+    mockWebSocket.onMessage((message) => {
+      if (message.type === 'connection') {
+        this.updateConnectionStatus(message.status === 'success');
+      }
+
+      if (message.type === 'message') {
+        this.addMessageToChat({
+          id: message.id,
+          text: message.text,
+          userId: message.userId,
+          timestamp: new Date(message.timestamp)
+        });
+      }
+    });
+  }
+
+  private sendMessage(text: string): void {
+    if (!this.currentChatId) return;
+
+    mockWebSocket.send({
+      chatId: this.currentChatId,
+      text: text
+    })
+  }
+
+  private updateConnectionStatus(isOnline: boolean): void {
+    const statusDot = document.querySelector('.status-dot');
+    const statusText = document.getElementById('statusText');
+    
+    // Добавляем проверки на существование элементов
+    if (statusDot) {
+      if (isOnline) {
+          statusDot.setAttribute('data-status', 'online');
+      } else {
+          statusDot.removeAttribute('data-status');
+      }
+  }
+  
+  if (statusText) {
+      statusText.textContent = isOnline ? 'Online' : 'Offline';
+  }
   }
 }
 

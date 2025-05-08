@@ -103,6 +103,45 @@ body {
           opacity: 1;
         }
       }
+
+      .chat-status {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .status-indicator {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 12px;
+        color: #666;
+      }
+
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #ccc;
+        transition: background 0.3s;
+      }
+      
+      [data-status="online"] {
+        background: #4caf50;
+        animation: pulse 1.5s infinite;
+      }
+
+      @keyframes pulse {
+        0% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+        100% {
+          opacity: 1;
+        }
+      }
     }
 
     .messages {
