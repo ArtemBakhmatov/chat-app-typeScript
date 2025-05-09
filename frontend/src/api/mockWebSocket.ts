@@ -1,11 +1,13 @@
-type MessageHandler = (message: any) => void;
+type MessageHandler = (message: WSMessage) => void;
 
 interface WSMessage {
   type: 'connection' | 'message';
+  status?: 'success' | 'error';
   id?: string;
   text?: string;
   userId?: string;
   timestamp?: string;
+  chatId?: string;
 }
 
 class MockWebSocket {
@@ -30,18 +32,27 @@ class MockWebSocket {
     this.messageHandlers.push(handler);
   }
 
-  send(data: any): void {
-    console.log('Отправлено:', data);
-    // Имитация ответа через 0.5-1.5 сек
-    setTimeout(() => {
-      this.notifyHandlers({
+  send(data: { chatId: string, text: string }): void {
+
+    try {
+      console.log('Отправлено:', data);
+
+      const response: WSMessage = {
         type: 'message',
-        id: Date.now(),
+        id: Date.now().toString(),
         text: `Ответ на "${data.text}"`,
         userId: '2', // ID "собеседника"
-        timestamp: new Date()
+        timestamp: new Date().toISOString(),
+        chatId: data.chatId
+      }
+
+      setTimeout(() => this.notifyHandlers(response), 500 + Math.random() * 1000);
+    } catch (error) {
+      this.notifyHandlers({
+        type: 'connection',
+        status: 'error'
       });
-    }, 500 + Math.random() * 1000);
+    }
   }
 
   private notifyHandlers(message: any): void {

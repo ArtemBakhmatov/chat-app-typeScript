@@ -67,7 +67,9 @@ class ChatApp {
           <span class="status-dot"></span>
           <span id="statusText">Offline</span>
         </div>
-        <button id="clearHistoryBtn">Очистить историю</button>
+        <div class="chat-actions">
+          <button id="clearHistoryBtn">Очистить историю</button>
+        </div>
       </div>
       <div class="typing-indicator" id="typingIndicator">Печатает...</div>
     `;
@@ -115,8 +117,10 @@ class ChatApp {
 
   private renderMessages(chatId: string): void {
     const messagesContainer = document.getElementById('messages') as HTMLElement;
-    if (!messagesContainer) return;
-
+    if (!messagesContainer) {
+      console.error('Messages container not found!');
+      return;
+    }
     const messages = this.chatHistory[chatId] || [];
     const grouped = this.groupMessagesByDate(messages);
 
@@ -192,13 +196,17 @@ class ChatApp {
       }
     });
 
-    document.getElementById('clearHistoryBtn')?.addEventListener('click', () => {
+    document.getElementById('chatHeader')?.addEventListener('click', (e) => {
       console.log('Нажатие на кнопку clearHistoryBtn');
-      if (this.currentChatId) {
-        delete this.chatHistory[this.currentChatId];
-        this.saveHistory();
-        this.renderMessages(this.currentChatId);
+      if ((e.target as HTMLElement).id === 'clearHistoryBtn') {
+        if (this.currentChatId && confirm('Удалить всю историю чата?')) {
+          delete this.chatHistory[this.currentChatId];
+          this.saveHistory();
+          this.renderMessages(this.currentChatId);
+          console.log('История очищена для чата', this.currentChatId);
+        }
       }
+      
     });
   }
 
@@ -213,9 +221,12 @@ class ChatApp {
     if (!this.chatHistory[this.currentChatId]) {
       this.chatHistory[this.currentChatId] = [];
     }
-    
-    // @ts-expect-error message
-    this.chatHistory[this.currentChatId].push(message);
+
+    this.chatHistory[this.currentChatId] = [
+      ...(this.chatHistory[this.currentChatId] || []),
+      messageForHistory
+    ];
+
     this.saveHistory();
 
     const messagesContainer = document.getElementById('messages') as HTMLElement;
@@ -236,6 +247,14 @@ class ChatApp {
       top: messagesContainer.scrollHeight,
       behavior: 'smooth'
     });
+
+    // Проверка на дубликаты сообщений
+    const isDuplicate = this.chatHistory[this.currentChatId]
+    .some(m => m.id === messageForHistory.id);
+  
+    if (!isDuplicate) {
+      this.chatHistory[this.currentChatId].push(messageForHistory);
+    }
   }
 
   private showTypingIndicator(show: boolean): void {
