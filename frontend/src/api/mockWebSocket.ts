@@ -1,5 +1,13 @@
 type MessageHandler = (message: any) => void;
 
+interface WSMessage {
+  type: 'connection' | 'message';
+  id?: string;
+  text?: string;
+  userId?: string;
+  timestamp?: string;
+}
+
 class MockWebSocket {
   private static instance: MockWebSocket;
   private messageHandlers: MessageHandler[] = [];

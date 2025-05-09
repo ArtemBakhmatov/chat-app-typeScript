@@ -9,8 +9,11 @@ const mockUsers: User[] = [
 
 // Тестовые сообщения 
 const mockMessages: Message[] = [
+  // @ts-expect-error timestamp
   { id: '101', text: 'Привет! Как дела?', userId: '1', timestamp: new Date(2024, 5, 10, 14, 30) },
+  // @ts-expect-error timestamp
   { id: '102', text: 'Всё отлично!', userId: '2', timestamp: new Date(2024, 5, 10, 14, 35) },
+  // @ts-expect-error timestamp
   { id: '103', text: 'Давно не виделись', userId: '1', timestamp: new Date(2024, 5, 10, 14, 40) }
 ];
 

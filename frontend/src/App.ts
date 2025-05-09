@@ -5,15 +5,21 @@ import { mockChats, mockMessages, mockUsers } from './mocks/data';
 import './styles/main.scss';
 import { Message } from './types/chat';
 
+interface ChatHistory {
+  [chatId: string]: Message[];
+}
+
 class ChatApp {
   private currentChatId: string | null = null;
   private typingTimeout: number | null = null;
+  private chatHistory: ChatHistory = {};
 
   constructor() {
     console.log('ChatApp initialized!');
     this.renderChatList();
     this.setupEventListeners();
     this.initWebSocket();
+    this.loadHistory();
   }
 
   private renderChatList(): void {
@@ -57,11 +63,12 @@ class ChatApp {
     chatHeader.innerHTML = `
       <div class="chat-status">
         <h2 id="currentChatTitle">${ chat.title }</h2>
-          <div class="status-indicator">
-            <span class="status-dot"></span>
-            <span id="statusText">Offline</span>
-          </div>
+        <div class="status-indicator">
+          <span class="status-dot"></span>
+          <span id="statusText">Offline</span>
         </div>
+        <button id="clearHistoryBtn">Очистить историю</button>
+      </div>
       <div class="typing-indicator" id="typingIndicator">Печатает...</div>
     `;
 
@@ -108,22 +115,38 @@ class ChatApp {
 
   private renderMessages(chatId: string): void {
     const messagesContainer = document.getElementById('messages') as HTMLElement;
-    const chat = mockChats.find(c => c.id === chatId);
-    if (!chat ) return;
+    if (!messagesContainer) return;
 
-    // Фильтруем сообщения (в реальном приложении будет запрос к API)
-    const chatMessages = mockMessages.filter(msg => 
-      chat.users.some(user => user.id === msg.userId)
-    );
+    const messages = this.chatHistory[chatId] || [];
+    const grouped = this.groupMessagesByDate(messages);
 
-    messagesContainer.innerHTML = chatMessages.map(msg => `
-      <div class="message ${ msg.userId === '1' ? 'outgoing' : 'incoming' }">
-        <div class="message-content">${ msg.text }</div>
+    messagesContainer.innerHTML = Object.entries(grouped)
+      .map(([date, msgs]) => `
+        <div class="message-group">
+          <div class="message-date">${date}</div>
+          ${msgs.map(msg => this.renderSingleMessage(msg)).join('')}
+        </div>
+      `).join('');
+  }
+
+  private groupMessagesByDate(messages: Message[]): Record<string, Message[]> {
+    return messages.reduce((groups, msg) => {
+      const date = new Date(msg.timestamp).toLocaleDateString();
+      if (!groups[date]) groups[date] = [];
+      groups[date].push(msg);
+      return groups;
+    }, {} as Record<string, Message[]>);
+  }
+
+  private renderSingleMessage(msg: Message): string {
+    return `
+      <div class="message ${msg.userId === '1' ? 'outgoing' : 'incoming'}">
+        <div class="message-content">${msg.text}</div>
         <div class="message-time">
-          ${ msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
+          ${new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </div>
       </div>
-    `).join('');
+    `;
   }
 
   private setupEventListeners(): void {
@@ -168,9 +191,33 @@ class ChatApp {
         messageInput.value = '';
       }
     });
+
+    document.getElementById('clearHistoryBtn')?.addEventListener('click', () => {
+      console.log('Нажатие на кнопку clearHistoryBtn');
+      if (this.currentChatId) {
+        delete this.chatHistory[this.currentChatId];
+        this.saveHistory();
+        this.renderMessages(this.currentChatId);
+      }
+    });
   }
 
-  private addMessageToChat(message: Message): void {
+  private addMessageToChat(message: Omit<Message, 'timestamp'> & { timestamp: Date }): void {
+    const messageForHistory = {
+      ...message,
+      timestamp: message.timestamp.toISOString() // Конвертируем в строку
+    };
+
+    if (!this.currentChatId) return;
+    
+    if (!this.chatHistory[this.currentChatId]) {
+      this.chatHistory[this.currentChatId] = [];
+    }
+    
+    // @ts-expect-error message
+    this.chatHistory[this.currentChatId].push(message);
+    this.saveHistory();
+
     const messagesContainer = document.getElementById('messages') as HTMLElement;
 
     const messageElement = document.createElement('div');
@@ -239,7 +286,18 @@ class ChatApp {
   
   if (statusText) {
       statusText.textContent = isOnline ? 'Online' : 'Offline';
+    }
   }
+
+   private loadHistory(): void {
+    const saved = localStorage.getItem('chatHistory');
+    if (saved) {
+      this.chatHistory = JSON.parse(saved);
+    }
+  }
+
+  private saveHistory(): void {
+    localStorage.setItem('chatHistory', JSON.stringify(this.chatHistory));
   }
 }
 

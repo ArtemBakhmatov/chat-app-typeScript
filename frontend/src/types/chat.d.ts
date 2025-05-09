@@ -8,7 +8,7 @@ export interface Message {
   id: string;
   text: string;
   userId: string;
-  timestamp: Date;
+  timestamp: string; // Изменили Date на string для localStorage
   isEncrypted?: boolean;
 }
 

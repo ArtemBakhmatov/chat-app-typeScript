@@ -144,6 +144,30 @@ body {
       }
     }
 
+    .message-group {
+      margin-bottom: 20px;
+    }
+
+    .message-date {
+      text-align: center;
+      color: #666;
+      font-size: 12px;
+      margin: 10px 0;
+      position: relative;
+
+      &::before, &::after {
+        content: "";
+        position: absolute;
+        height: 1px;
+        background: #ddd;
+        top: 50%;
+        width: 30%;
+      }
+
+      &::before { left: 0; }
+      &::after { right: 0; }
+    }
+
     .messages {
       flex: 1;
       padding: 20px;
