@@ -86,6 +86,21 @@ body {
     flex-direction: column;
     position: relative;
 
+    .load-more-btn {
+        display: block;
+        margin: 10px auto;
+        padding: 8px 16px;
+        background: #f0f0f0;
+        border: 1px solid #ddd;
+        border-radius: 20px;
+        cursor: pointer;
+        transition: all 0.3s;
+
+        &:hover {
+          background: #e0e0e0;
+        }
+      }
+
     .chat-header {
       padding: 15px;
       border-bottom: 1px solid #ddd;

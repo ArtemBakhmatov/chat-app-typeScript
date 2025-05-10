@@ -13,6 +13,8 @@ class ChatApp {
   private currentChatId: string | null = null;
   private typingTimeout: number | null = null;
   private chatHistory: ChatHistory = {};
+  private currentMessagesPage = 1;
+  private readonly MESSAGES_PER_PAGE = 20;
 
   constructor() {
     console.log('ChatApp initialized!');
@@ -23,6 +25,7 @@ class ChatApp {
     this.setupSearch();
   }
 
+  // === Chat List Management ===
   private renderChatList(): void {
     const chatList = document.getElementById('chatList') as HTMLElement;
 
@@ -117,16 +120,28 @@ class ChatApp {
     this.showTypingIndicator(false); // Сброс индикатора при смене чата
     // Авто фокус на поле ввода при выборе чата:
     (document.getElementById('messageInput') as HTMLInputElement).focus();
-  }
 
+    this.currentMessagesPage = 1; // Сброс при смене чата
+  }
+  // === ####################### === 
+  
+  // === Messages Management === 
   private renderMessages(chatId: string): void {
     const messagesContainer = document.getElementById('messages') as HTMLElement;
     if (!messagesContainer) {
       console.error('Messages container not found!');
       return;
     }
-    const messages = this.chatHistory[chatId] || [];
-    const grouped = this.groupMessagesByDate(messages);
+    const allMessages = this.chatHistory[chatId] || [];
+    const startIdx = Math.max(0, allMessages.length - this.currentMessagesPage * this.MESSAGES_PER_PAGE);
+    const messagesToShow = allMessages.slice(startIdx);
+
+    // Очищаем только при первой загрузке
+    if (this.currentMessagesPage === 1) {
+      messagesContainer.innerHTML = '';
+    }
+
+    const grouped = this.groupMessagesByDate(messagesToShow);
 
     messagesContainer.innerHTML = Object.entries(grouped)
       .map(([date, msgs]) => `
@@ -134,8 +149,24 @@ class ChatApp {
           <div class="message-date">${date}</div>
           ${msgs.map(msg => this.renderSingleMessage(msg)).join('')}
         </div>
-      `).join('');
+      `).join('') + messagesContainer.innerHTML; // Добавляем в начало
+
+    // Прячем кнопку, если все сообщения загружены
+    const loadMoreBtn = document.getElementById('loadMoreBtn');
+    if (loadMoreBtn) {
+      loadMoreBtn.style.display = 
+        allMessages.length > messagesToShow.length ? 'block' : 'none';
+    }
   }
+
+  // Метод для загрузки сообщений порциями
+  private loadMoreMessages(): void {
+    if (!this.currentChatId) return;
+    
+    this.currentMessagesPage++;
+    this.renderMessages(this.currentChatId);
+  }
+  // === ####################### === 
 
   private groupMessagesByDate(messages: Message[]): Record<string, Message[]> {
     return messages.reduce((groups, msg) => {
@@ -161,6 +192,10 @@ class ChatApp {
     const sendButton = document.getElementById('sendButton') as HTMLButtonElement;
     const messageInput = document.getElementById('messageInput') as HTMLInputElement;
 
+    document.getElementById('loadMoreBtn')?.addEventListener('click', () => {
+      this.loadMoreMessages();
+    });
+
     messageInput.addEventListener('input', () => {
       if (!this.currentChatId) return;
       
@@ -181,16 +216,6 @@ class ChatApp {
         this.sendMessage(messageInput.value.trim());
         messageInput.value = '';
       }
-
-      // const newMessage: Message = {
-      //   id: Date.now().toString(),
-      //   text: messageInput.value,
-      //   userId: '1', // ID текущего пользователя (пока mock)
-      //   timestamp: new Date()
-      // };
-
-      // this.addMessageToChat(newMessage);
-      // messageInput.value = '';
     });
 
     messageInput.addEventListener('keypress', (e) => {
@@ -268,6 +293,7 @@ class ChatApp {
     }
   }
 
+  // === WebSocket Handlers ===
   private initWebSocket(): void {
     mockWebSocket.onMessage((message) => {
       if (message.type === 'connection') {
@@ -293,6 +319,7 @@ class ChatApp {
       text: text
     })
   }
+  // === ####################### === 
 
   private updateConnectionStatus(isOnline: boolean): void {
     const statusDot = document.querySelector('.status-dot');
@@ -354,7 +381,24 @@ class ChatApp {
       .map(msg => this.renderSingleMessage(msg))
       .join('');
   }
-  /////////////////////////////////////////////////////////
 }
+
+// ===== Utils =====
+function formatMessageDate(timestamp: string): string {
+  return new Date(timestamp).toLocaleTimeString([], { 
+    hour: '2-digit', 
+    minute: '2-digit' 
+  });
+}
+
+function debounce(func: Function, timeout = 300) {
+  let timer: number;
+  return (...args: any[]) => {
+    clearTimeout(timer);
+    // @ts-expect-error.
+    timer = setTimeout(() => func.apply(this, args), timeout);
+  };
+}
+// === ####################### === 
 
 new ChatApp();
