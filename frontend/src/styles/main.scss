@@ -90,6 +90,22 @@ body {
       padding: 15px;
       border-bottom: 1px solid #ddd;
 
+      .search-container {
+        padding-top: 10px;
+    
+        input {
+          width: 100%;
+          padding: 8px 12px;
+          border: 1px solid #ddd;
+          border-radius: 20px;
+          outline: none;
+
+          &:focus {
+            border-color: $primary-color;
+          }
+        }
+      }
+
       .typing-indicator {
         font-size: 12px;
         color: #666;

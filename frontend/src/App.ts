@@ -20,6 +20,7 @@ class ChatApp {
     this.setupEventListeners();
     this.initWebSocket();
     this.loadHistory();
+    this.setupSearch();
   }
 
   private renderChatList(): void {
@@ -72,6 +73,9 @@ class ChatApp {
         </div>
       </div>
       <div class="typing-indicator" id="typingIndicator">Печатает...</div>
+      <div class="search-container">
+        <input type="text" id="searchInput" placeholder="Поиск в сообщениях...">
+      </div>
     `;
 
     // TODO: Рендер сообщений (следующий этап)
@@ -270,7 +274,7 @@ class ChatApp {
         this.updateConnectionStatus(message.status === 'success');
       }
 
-      if (message.type === 'message') {
+      if (message.type === 'message' && message.id && message.text && message.userId && message.timestamp) {
         this.addMessageToChat({
           id: message.id,
           text: message.text,
@@ -318,6 +322,39 @@ class ChatApp {
   private saveHistory(): void {
     localStorage.setItem('chatHistory', JSON.stringify(this.chatHistory));
   }
+  
+  // Реализация логики поиска по истории
+  private setupSearch(): void {
+    document.getElementById('chatHeader')?.addEventListener('input', (e) => {
+      const target = e.target as HTMLInputElement;
+      if (target.id === 'searchInput') {
+        setTimeout(() => {
+          this.filterMessages(target.value.trim());
+        }, 500);
+      }
+    });
+  }
+
+   private filterMessages(query: string): void {
+    if (!this.currentChatId) return;
+
+    const allMessages = this.chatHistory[this.currentChatId] || [];
+    const filtered = query 
+      ? allMessages.filter(msg => msg.text.toLowerCase().includes(query.toLowerCase()))
+      : allMessages;
+
+    this.renderFilteredMessages(filtered);
+  }
+
+  private renderFilteredMessages(messages: Message[]): void {
+    const container = document.getElementById('messages');
+    if (!container) return;
+
+    container.innerHTML = messages
+      .map(msg => this.renderSingleMessage(msg))
+      .join('');
+  }
+  /////////////////////////////////////////////////////////
 }
 
 new ChatApp();
