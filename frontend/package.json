@@ -28,6 +28,8 @@
   },
   "dependencies": {
     "@types/crypto-js": "^4.2.2",
-    "crypto-js": "^4.2.0"
+    "@types/react-window": "^1.8.8",
+    "crypto-js": "^4.2.0",
+    "react-window": "^1.8.11"
   }
 }

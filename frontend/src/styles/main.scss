@@ -225,6 +225,12 @@ body {
       scrollbar-width: thin;
       scrollbar-color: #c1c1c1 transparent;
       transition: opacity 0.3s;
+      position: relative;
+      overflow: hidden !important;
+
+      .virtual-scroll-container {
+        width: 100% !important;
+      }
 
       &::-webkit-scrollbar {
         width: 6px;
