@@ -1,7 +1,7 @@
 import { mockWebSocket } from './api/mockWebSocket';
 import { LoadingDots } from './components/LoadingDots';
 import { mockChats, mockMessages, mockUsers } from './mocks/data';
-
+import { VirtualScroll } from './utils/VirtualScroll';
 import './styles/main.scss';
 import { Message } from './types/chat';
 
@@ -15,6 +15,7 @@ class ChatApp {
   private chatHistory: ChatHistory = {};
   private currentMessagesPage = 1;
   private readonly MESSAGES_PER_PAGE = 20;
+  private virtualScroll: VirtualScroll | null = null;
 
   constructor() {
     console.log('ChatApp initialized!');
@@ -23,6 +24,7 @@ class ChatApp {
     this.initWebSocket();
     this.loadHistory();
     this.setupSearch();
+    this.initVirtualScroll();
   }
 
   // === Chat List Management ===
@@ -127,36 +129,14 @@ class ChatApp {
   
   // === Messages Management === 
   private renderMessages(chatId: string): void {
-    const messagesContainer = document.getElementById('messages') as HTMLElement;
-    if (!messagesContainer) {
-      console.error('Messages container not found!');
-      return;
-    }
-    const allMessages = this.chatHistory[chatId] || [];
-    const startIdx = Math.max(0, allMessages.length - this.currentMessagesPage * this.MESSAGES_PER_PAGE);
-    const messagesToShow = allMessages.slice(startIdx);
-
-    // Очищаем только при первой загрузке
-    if (this.currentMessagesPage === 1) {
-      messagesContainer.innerHTML = '';
+   
+    if (!this.virtualScroll) {
+      this.initVirtualScroll();
     }
 
-    const grouped = this.groupMessagesByDate(messagesToShow);
-
-    messagesContainer.innerHTML = Object.entries(grouped)
-      .map(([date, msgs]) => `
-        <div class="message-group">
-          <div class="message-date">${date}</div>
-          ${msgs.map(msg => this.renderSingleMessage(msg)).join('')}
-        </div>
-      `).join('') + messagesContainer.innerHTML; // Добавляем в начало
-
-    // Прячем кнопку, если все сообщения загружены
-    const loadMoreBtn = document.getElementById('loadMoreBtn');
-    if (loadMoreBtn) {
-      loadMoreBtn.style.display = 
-        allMessages.length > messagesToShow.length ? 'block' : 'none';
-    }
+    const messages = this.chatHistory[chatId] || [];
+    this.virtualScroll?.update(messages.length);
+    this.virtualScroll?.scrollToBottom();
   }
 
   // Метод для загрузки сообщений порциями
@@ -240,50 +220,12 @@ class ChatApp {
   }
 
   private addMessageToChat(message: Omit<Message, 'timestamp'> & { timestamp: Date }): void {
-    const messageForHistory = {
-      ...message,
-      timestamp: message.timestamp.toISOString() // Конвертируем в строку
-    };
-
-    if (!this.currentChatId) return;
     
-    if (!this.chatHistory[this.currentChatId]) {
-      this.chatHistory[this.currentChatId] = [];
-    }
+    const messages = this.chatHistory[this.currentChatId!] || [];
+    this.virtualScroll?.update(messages.length);
+    this.virtualScroll?.scrollToBottom();
 
-    this.chatHistory[this.currentChatId] = [
-      ...(this.chatHistory[this.currentChatId] || []),
-      messageForHistory
-    ];
-
-    this.saveHistory();
-
-    const messagesContainer = document.getElementById('messages') as HTMLElement;
-
-    const messageElement = document.createElement('div');
-    messageElement.className = `message ${ message.userId === '1' ? 'outgoing' : 'incoming' }`;
-    messageElement.innerHTML = `
-      <div class="message-content">${ message.text }</div>
-      <div class="message-time">
-        ${ message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
-      </div>
-    `;
-
-    messagesContainer.appendChild(messageElement);
-    //messagesContainer.scrollTop = messagesContainer.scrollHeight; // авто-я прокрутка элемента до нижней части.
-
-    messagesContainer.scrollTo({
-      top: messagesContainer.scrollHeight,
-      behavior: 'smooth'
-    });
-
-    // Проверка на дубликаты сообщений
-    const isDuplicate = this.chatHistory[this.currentChatId]
-    .some(m => m.id === messageForHistory.id);
-  
-    if (!isDuplicate) {
-      this.chatHistory[this.currentChatId].push(messageForHistory);
-    }
+    this.debouncedUpdate();
   }
 
   private showTypingIndicator(show: boolean): void {
@@ -381,6 +323,52 @@ class ChatApp {
       .map(msg => this.renderSingleMessage(msg))
       .join('');
   }
+
+  private initVirtualScroll() {
+    const container = document.getElementById('messages');
+    if (!container) return;
+
+    // Очищаем контейнер перед инициализацией
+    container.innerHTML = '<div class="virtual-scroll-content"></div>';
+
+    this.virtualScroll = new VirtualScroll({
+      container: container.querySelector('.virtual-scroll-content') as HTMLElement,
+      itemHeight: 80,
+      totalItems: 0,
+      renderItem: (index) => this.renderMessageItem(index),
+      buffer: 10
+    });
+  }
+
+  private renderMessageItem(index: number): HTMLElement {
+    const messages = this.chatHistory[this.currentChatId!] || [];
+    const msg = messages[index];
+    
+    if (!msg) {
+      // Возвращаем пустой div если сообщения нет
+      const emptyDiv = document.createElement('div');
+      emptyDiv.style.height = `${this.virtualScroll?.options.itemHeight || 80}px`;
+      return emptyDiv;
+    }
+
+    const element = document.createElement('div');
+    element.innerHTML = `
+      <div class="message ${msg.userId === '1' ? 'outgoing' : 'incoming'}">
+        <div class="message-content">${msg.text}</div>
+        <div class="message-time">
+          ${new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+        </div>
+      </div>
+    `;
+
+    return element.firstElementChild as HTMLElement || element;
+  }
+
+  // логика чтобы не дергался scroll
+  private debouncedUpdate = debounce(() => {
+    const messages = this.chatHistory[this.currentChatId!] || [];
+    this.virtualScroll?.update(messages.length);
+  }, 100);
 }
 
 // ===== Utils =====

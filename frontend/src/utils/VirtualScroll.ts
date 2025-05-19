@@ -1,61 +1,90 @@
-import { FixedSizeList as List } from 'react-window';
-import { Message } from '../types/chat';
+type VirtualScrollOptions = {
+  container: HTMLElement;
+  itemHeight: number;
+  renderItem: (index: number) => HTMLElement;
+  totalItems: number;
+  buffer?: number;
+};
 
 export class VirtualScroll {
-  private static instance: VirtualScroll;
-  private listRef: List | null = null;
+  private options: VirtualScrollOptions;
+  private visibleItems: number = 0;
+  private startIndex: number = 0;
+  private endIndex: number = 0;
+  private scrollTop: number = 0;
+  private items: HTMLElement[] = [];
+  private contentEl: HTMLElement;
 
-  private constructor() {}
+  constructor(options: VirtualScrollOptions) {
+    this.options = {
+      buffer: 5,
+      ...options
+    };
 
-  static getInstance(): VirtualScroll {
-    if (!VirtualScroll.instance) {
-      VirtualScroll.instance = new VirtualScroll();
-    }
-    return VirtualScroll.instance;
+    this.contentEl = document.createElement('div');
+    this.contentEl.style.position = 'relative';
+    this.contentEl.style.height = `${this.options.totalItems * this.options.itemHeight}px`;
+    this.options.container.appendChild(this.contentEl);
+
+    this.calculateVisible();
+    this.render();
+    this.setupEvents();
+    console.log('VirtualScroll initialized with options:', this.options);
+
   }
 
-  init(container: HTMLElement, messages: Message[]) {
-    // Удаляем старый скролл если был
-    if (this.listRef) {
-      container.innerHTML = '';
-    }
+  private setupEvents() {
+    this.options.container.addEventListener('scroll', () => {
+      this.scrollTop = this.options.container.scrollTop;
+      this.calculateVisible();
+      this.render();
+    });
+  }
 
-    // Создаем контейнер для виртуального скролла
-    const listContainer = document.createElement('div');
-    listContainer.style.height = '100%';
-    container.appendChild(listContainer);
+  private calculateVisible() {
+    this.visibleItems = Math.ceil(this.options.container.offsetHeight / this.options.itemHeight);
+    this.startIndex = Math.max(
+      0,
+      Math.floor(this.scrollTop / this.options.itemHeight) - this.options.buffer!
+    );
+    this.endIndex = Math.min(
+      this.options.totalItems - 1,
+      this.startIndex + this.visibleItems + this.options.buffer! * 2
+    );
+  }
 
-    // Инициализируем виртуальный скролл
-    this.listRef = new List({
-      height: container.offsetHeight,
-      itemCount: messages.length,
-      itemSize: 80, // Примерная высота одного сообщения
-      width: '100%',
-      // @ts-expect-error
-      children: ({ index, style }) => {
-        const msg = messages[index];
-        const messageElement = document.createElement('div');
-        messageElement.style.cssText = Object.entries(style)
-          .map(([key, val]) => `${key}:${val}`)
-          .join(';');
-        
-        messageElement.innerHTML = `
-          <div class="message ${msg.userId === '1' ? 'outgoing' : 'incoming'}">
-            <div class="message-content">${msg.text}</div>
-            <div class="message-time">
-              ${new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </div>
-          </div>
-        `;
-        
-        return messageElement;
+  private render() {
+    // Удаляем невидимые элементы
+    this.items.forEach((item, index) => {
+      if (item && (index < this.startIndex || index > this.endIndex)) {
+        item.remove();
+        this.items[index] = null!;
       }
     });
-    // @ts-expect-error
-    this.listRef.render(listContainer);
+
+    // Добавляем/обновляем видимые элементы
+    for (let i = this.startIndex; i <= this.endIndex; i++) {
+      if (!this.items[i]) {
+        const item = this.options.renderItem(i);
+        if (item) {
+          item.style.position = 'absolute';
+          item.style.top = `${i * this.options.itemHeight}px`;
+          item.style.width = '100%';
+          this.contentEl.appendChild(item);
+          this.items[i] = item;
+        }
+      }
+    }
   }
 
-  scrollToBottom() {
-    this.listRef?.scrollToItem(this.listRef.props.itemCount - 1);
+  public update(totalItems: number) {
+    this.options.totalItems = totalItems;
+    this.contentEl.style.height = `${totalItems * this.options.itemHeight}px`;
+    this.calculateVisible();
+    this.render();
+  }
+
+  public scrollToBottom() {
+    this.options.container.scrollTop = this.contentEl.offsetHeight;
   }
 }

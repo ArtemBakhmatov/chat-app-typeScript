@@ -220,16 +220,22 @@ body {
     .messages {
       flex: 1;
       padding: 20px;
-      overflow-y: auto;
+      overflow-y: auto !important;
       background: white;
       scrollbar-width: thin;
       scrollbar-color: #c1c1c1 transparent;
       transition: opacity 0.3s;
-      position: relative;
-      overflow: hidden !important;
+      height: 100%;
+      contain: strict; // Оптимизация для браузера
 
-      .virtual-scroll-container {
-        width: 100% !important;
+      .virtual-scroll-content {
+        position: relative;
+        width: 100%;
+      }
+
+      .message {
+        contain: content; // Оптимизация
+        will-change: transform; // Для плавности анимаций
       }
 
       &::-webkit-scrollbar {
