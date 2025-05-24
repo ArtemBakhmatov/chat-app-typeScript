@@ -19,12 +19,12 @@ class ChatApp {
 
   constructor() {
     console.log('ChatApp initialized!');
+    this.initVirtualScroll();
     this.renderChatList();
     this.setupEventListeners();
     this.initWebSocket();
     this.loadHistory();
     this.setupSearch();
-    this.initVirtualScroll();
   }
 
   // === Chat List Management ===
@@ -129,14 +129,21 @@ class ChatApp {
   
   // === Messages Management === 
   private renderMessages(chatId: string): void {
-   
     if (!this.virtualScroll) {
       this.initVirtualScroll();
+      if (!this.virtualScroll) return;
     }
 
     const messages = this.chatHistory[chatId] || [];
-    this.virtualScroll?.update(messages.length);
-    this.virtualScroll?.scrollToBottom();
+    this.virtualScroll.update(messages.length);
+    
+    // Небольшая задержка для стабилизации DOM
+    setTimeout(() => {
+      const container = document.getElementById('messages');
+      if (container) {
+        container.scrollTop = container.scrollHeight;
+      }
+    }, 50);
   }
 
   // Метод для загрузки сообщений порциями
@@ -219,13 +226,22 @@ class ChatApp {
     });
   }
 
-  private addMessageToChat(message: Omit<Message, 'timestamp'> & { timestamp: Date }): void {
-    
-    const messages = this.chatHistory[this.currentChatId!] || [];
-    this.virtualScroll?.update(messages.length);
-    this.virtualScroll?.scrollToBottom();
+  private addMessageToChat(message: Message): void {
+    if (!this.currentChatId) return;
 
-    this.debouncedUpdate();
+    if (!this.chatHistory[this.currentChatId]) {
+      this.chatHistory[this.currentChatId] = [];
+    }
+
+    this.chatHistory[this.currentChatId].push(message);
+    this.saveHistory();
+
+    if (this.virtualScroll) {
+      this.virtualScroll.update(this.chatHistory[this.currentChatId].length);
+      setTimeout(() => {
+        this.virtualScroll?.scrollToBottom();
+      }, 50);
+    }
   }
 
   private showTypingIndicator(show: boolean): void {
@@ -326,17 +342,34 @@ class ChatApp {
 
   private initVirtualScroll() {
     const container = document.getElementById('messages');
-    if (!container) return;
+    if (!container) {
+      console.error('Messages container not found!');
+      return;
+    }
 
-    // Очищаем контейнер перед инициализацией
-    container.innerHTML = '<div class="virtual-scroll-content"></div>';
-
+    // Очищаем контейнер
+    container.innerHTML = '';
+    
     this.virtualScroll = new VirtualScroll({
-      container: container.querySelector('.virtual-scroll-content') as HTMLElement,
+      container: container,
       itemHeight: 80,
       totalItems: 0,
-      renderItem: (index) => this.renderMessageItem(index),
-      buffer: 10
+      renderItem: (index) => {
+        const messages = this.chatHistory[this.currentChatId!] || [];
+        const msg = messages[index];
+        
+        if (!msg) {
+          const empty = document.createElement('div');
+          empty.style.height = '80px';
+          return empty;
+        }
+
+        const element = document.createElement('div');
+        element.className = 'message-container';
+        element.innerHTML = this.renderSingleMessage(msg);
+        return element.firstElementChild as HTMLElement;
+      },
+      buffer: 5
     });
   }
 

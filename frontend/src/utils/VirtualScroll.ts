@@ -16,15 +16,18 @@ export class VirtualScroll {
   private contentEl: HTMLElement;
 
   constructor(options: VirtualScrollOptions) {
-    this.options = {
-      buffer: 5,
-      ...options
-    };
+    this.options = options;
 
+    // Создаем основной контейнер
     this.contentEl = document.createElement('div');
+    this.contentEl.className = 'virtual-scroll-content';
     this.contentEl.style.position = 'relative';
     this.contentEl.style.height = `${this.options.totalItems * this.options.itemHeight}px`;
+    
+    // Очищаем и добавляем в DOM
+    this.options.container.innerHTML = '';
     this.options.container.appendChild(this.contentEl);
+
 
     this.calculateVisible();
     this.render();
@@ -62,7 +65,7 @@ export class VirtualScroll {
       }
     });
 
-    // Добавляем/обновляем видимые элементы
+    // Добавляем новые элементы
     for (let i = this.startIndex; i <= this.endIndex; i++) {
       if (!this.items[i]) {
         const item = this.options.renderItem(i);
